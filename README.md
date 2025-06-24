@@ -180,6 +180,8 @@ id: 2 - Name: John Doe
 
 Paste this in the **EC2 User Data** while launching the instance for auto-setup:
 
+>> Stop running instance >> user data >> paste following script 
+
 ```bash
 #!/bin/bash
 # LAMP Stack EC2 User Data Script for Amazon Linux 2023
