@@ -182,30 +182,85 @@ Paste this in the **EC2 User Data** while launching the instance for auto-setup:
 
 ```bash
 #!/bin/bash
+# LAMP Stack EC2 User Data Script for Amazon Linux 2023
+
+# Update system
 dnf update -y
+
+# Install Apache, MariaDB, PHP, PHP MySQL extension
 dnf install -y httpd mariadb105-server php php-mysqlnd
 
+# Start & enable Apache and MariaDB services
 systemctl start httpd
 systemctl enable httpd
 systemctl start mariadb
 systemctl enable mariadb
 
-mysql -e "CREATE DATABASE sampledb;"
-mysql -e "CREATE USER 'sampleuser'@'localhost' IDENTIFIED BY 'SamplePass123!';"
-mysql -e "GRANT ALL PRIVILEGES ON sampledb.* TO 'sampleuser'@'localhost';"
-mysql -e "FLUSH PRIVILEGES;"
-mysql -e "USE sampledb; CREATE TABLE users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100)); INSERT INTO users (name) VALUES ('Atul Kamble'), ('John Doe');"
+# Set root password and secure MariaDB installation (automated)
+MYSQL_ROOT_PASSWORD="SampleRootPass123!"
 
-mkdir /var/www/html/myproject
+# Secure MariaDB installation
+mysql --user=root <<EOF
+ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
+DELETE FROM mysql.user WHERE User='';
+DROP DATABASE IF EXISTS test;
+DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
+FLUSH PRIVILEGES;
+EOF
 
-echo '<?php
-\$conn = new mysqli("localhost", "sampleuser", "SamplePass123!", "sampledb");
-if (\$conn->connect_error) { die("Connection failed: " . \$conn->connect_error); }
-\$result = \$conn->query("SELECT id, name FROM users");
+# Create database and user
+mysql --user=root --password=${MYSQL_ROOT_PASSWORD} <<EOF
+CREATE DATABASE sampledb;
+CREATE USER 'sampleuser'@'localhost' IDENTIFIED BY 'SamplePass123!';
+GRANT ALL PRIVILEGES ON sampledb.* TO 'sampleuser'@'localhost';
+FLUSH PRIVILEGES;
+USE sampledb;
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100)
+);
+INSERT INTO users (name) VALUES ('Atul Kamble'), ('John Doe');
+EOF
+
+# Create project directory
+mkdir -p /var/www/html/myproject
+
+# Create PHP project file with database connection
+cat > /var/www/html/myproject/index.php <<EOL
+<?php
+\$servername = "localhost";
+\$username = "sampleuser";
+\$password = "SamplePass123!";
+\$dbname = "sampledb";
+
+// Create connection
+\$conn = new mysqli(\$servername, \$username, \$password, \$dbname);
+
+// Check connection
+if (\$conn->connect_error) {
+  die("Connection failed: " . \$conn->connect_error);
+}
+
+// Fetch data
+\$sql = "SELECT id, name FROM users";
+\$result = \$conn->query(\$sql);
+
 echo "<h2>User List</h2>";
-while(\$row = \$result->fetch_assoc()) { echo "id: " . \$row["id"]. " - Name: " . \$row["name"]. "<br>"; }
-\$conn->close();
-?>' > /var/www/html/index.php
+if (\$result->num_rows > 0) {
+  while(\$row = \$result->fetch_assoc()) {
+    echo "id: " . \$row["id"]. " - Name: " . \$row["name"]. "<br>";
+  }
+} else {
+  echo "0 results";
+}
 
+\$conn->close();
+?>
+EOL
+
+# Set correct permissions
+chown -R apache:apache /var/www/html/
+
+# Restart Apache to apply changes
 systemctl restart httpd
 ```
