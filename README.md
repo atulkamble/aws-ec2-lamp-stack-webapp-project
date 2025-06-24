@@ -8,7 +8,7 @@
 
 We’ll cover:
 
-* Launching an EC2 instance (Amazon Linux 2023)
+* Launching an EC2 instance (Amazon Linux 2023) | t2.medium
 * Installing Apache, MySQL (MariaDB), PHP
 * Creating a simple PHP project connecting to a database
 * Setting up database schema and user
@@ -41,17 +41,21 @@ sudo su
 Install Apache, PHP, MariaDB:
 
 ```bash
-dnf update -y
-dnf install -y httpd mariadb105-server php php-mysqlnd
+sudo dnf update -y
+sudo dnf install -y httpd mariadb105-server php php-mysqlnd
 ```
 
+# set system password 
+```
+sudo -i passwd
+```
 Start & enable services:
 
 ```bash
-systemctl start httpd
-systemctl enable httpd
-systemctl start mariadb
-systemctl enable mariadb
+sudo systemctl start httpd
+sudo systemctl enable httpd
+sudo systemctl start mariadb
+sudo systemctl enable mariadb
 ```
 
 ---
@@ -59,7 +63,7 @@ systemctl enable mariadb
 ### 📜 2️⃣ Secure MariaDB Installation
 
 ```bash
-mysql_secure_installation
+sudo mysql_secure_installation
 ```
 
 Follow prompts (set root password, remove anonymous users, disallow remote root login, remove test db, reload privilege tables).
@@ -69,7 +73,7 @@ Follow prompts (set root password, remove anonymous users, disallow remote root 
 ### 📜 3️⃣ Create Database & User
 
 ```sql
-mysql -u root -p
+sudo mysql -u root -p
 ```
 
 ```sql
@@ -85,8 +89,8 @@ EXIT;
 ### 📜 4️⃣ Create Project Directory
 
 ```bash
-mkdir /var/www/html/myproject
-cd /var/www/html/myproject
+sudo mkdir /var/www/html/
+cd /var/www/html/
 ```
 
 ---
@@ -132,7 +136,7 @@ $conn->close();
 ### 📜 6️⃣ Create Table and Insert Sample Data
 
 ```sql
-mysql -u root -p
+sudo mysql -u root -p
 ```
 
 ```sql
@@ -152,15 +156,15 @@ EXIT;
 ### 📜 7️⃣ Permissions & Restart Apache
 
 ```bash
-chown -R apache:apache /var/www/html/myproject
-systemctl restart httpd
+sudo chown -R apache:apache /var/www/html/
+sudo systemctl restart httpd
 ```
 
 ---
 
 ### 📜 8️⃣ Test in Browser
 
-Open `http://your-ec2-public-ip/myproject/`
+Open `http://your-ec2-public-ip`
 
 ✅ You should see:
 
@@ -178,13 +182,13 @@ Paste this in the **EC2 User Data** while launching the instance for auto-setup:
 
 ```bash
 #!/bin/bash
-dnf update -y
-dnf install -y httpd mariadb105-server php php-mysqlnd
+sudo dnf update -y
+sudo dnf install -y httpd mariadb105-server php php-mysqlnd
 
-systemctl start httpd
-systemctl enable httpd
-systemctl start mariadb
-systemctl enable mariadb
+sudo systemctl start httpd
+sudo systemctl enable httpd
+sudo systemctl start mariadb
+sudo systemctl enable mariadb
 
 mysql -e "CREATE DATABASE sampledb;"
 mysql -e "CREATE USER 'sampleuser'@'localhost' IDENTIFIED BY 'SamplePass123!';"
@@ -192,7 +196,7 @@ mysql -e "GRANT ALL PRIVILEGES ON sampledb.* TO 'sampleuser'@'localhost';"
 mysql -e "FLUSH PRIVILEGES;"
 mysql -e "USE sampledb; CREATE TABLE users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100)); INSERT INTO users (name) VALUES ('Atul Kamble'), ('John Doe');"
 
-mkdir /var/www/html/myproject
+sudo mkdir /var/www/html/myproject
 
 echo '<?php
 \$conn = new mysqli("localhost", "sampleuser", "SamplePass123!", "sampledb");
@@ -201,7 +205,7 @@ if (\$conn->connect_error) { die("Connection failed: " . \$conn->connect_error);
 echo "<h2>User List</h2>";
 while(\$row = \$result->fetch_assoc()) { echo "id: " . \$row["id"]. " - Name: " . \$row["name"]. "<br>"; }
 \$conn->close();
-?>' > /var/www/html/myproject/index.php
+?>' > /var/www/html/index.php
 
-systemctl restart httpd
+sudo systemctl restart httpd
 ```
