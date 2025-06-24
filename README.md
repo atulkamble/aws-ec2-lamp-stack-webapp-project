@@ -182,13 +182,13 @@ Paste this in the **EC2 User Data** while launching the instance for auto-setup:
 
 ```bash
 #!/bin/bash
-sudo dnf update -y
-sudo dnf install -y httpd mariadb105-server php php-mysqlnd
+dnf update -y
+dnf install -y httpd mariadb105-server php php-mysqlnd
 
-sudo systemctl start httpd
-sudo systemctl enable httpd
-sudo systemctl start mariadb
-sudo systemctl enable mariadb
+systemctl start httpd
+systemctl enable httpd
+systemctl start mariadb
+systemctl enable mariadb
 
 mysql -e "CREATE DATABASE sampledb;"
 mysql -e "CREATE USER 'sampleuser'@'localhost' IDENTIFIED BY 'SamplePass123!';"
@@ -196,7 +196,7 @@ mysql -e "GRANT ALL PRIVILEGES ON sampledb.* TO 'sampleuser'@'localhost';"
 mysql -e "FLUSH PRIVILEGES;"
 mysql -e "USE sampledb; CREATE TABLE users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100)); INSERT INTO users (name) VALUES ('Atul Kamble'), ('John Doe');"
 
-sudo mkdir /var/www/html/myproject
+mkdir /var/www/html/myproject
 
 echo '<?php
 \$conn = new mysqli("localhost", "sampleuser", "SamplePass123!", "sampledb");
@@ -207,5 +207,5 @@ while(\$row = \$result->fetch_assoc()) { echo "id: " . \$row["id"]. " - Name: " 
 \$conn->close();
 ?>' > /var/www/html/index.php
 
-sudo systemctl restart httpd
+systemctl restart httpd
 ```
